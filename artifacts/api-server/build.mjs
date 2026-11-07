@@ -35,6 +35,7 @@ async function buildAll() {
       "canvas",
       "bcrypt",
       "argon2",
+      "socket.io",
       "fsevents",
       "re2",
       "farmhash",

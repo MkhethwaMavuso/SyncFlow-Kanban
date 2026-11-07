@@ -2,14 +2,24 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: SyncFlow collaborative project management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Account and session operations
+  - name: boards
+    description: Collaborative board operations
+  - name: tasks
+    description: Task and comment operations
+  - name: sprints
+    description: Sprint planning operations
+  - name: analytics
+    description: Board reporting operations
 paths:
   /healthz:
     get:
@@ -24,7 +34,423 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "409":
+          description: Email is already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in to an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out of the current session
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the signed-in user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Sign in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards:
+    get:
+      operationId: listBoards
+      tags: [boards]
+      summary: List boards available to the current user
+      responses:
+        "200":
+          description: Boards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Board"
+    post:
+      operationId: createBoard
+      tags: [boards]
+      summary: Create a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BoardInput"
+      responses:
+        "201":
+          description: Created board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+  /boards/{boardId}:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    get:
+      operationId: getBoard
+      tags: [boards]
+      summary: Get a board and its members
+      responses:
+        "200":
+          description: Board details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "404":
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateBoard
+      tags: [boards]
+      summary: Update a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BoardUpdate"
+      responses:
+        "200":
+          description: Updated board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+    delete:
+      operationId: deleteBoard
+      tags: [boards]
+      summary: Delete a board and its work
+      responses:
+        "204":
+          description: Board deleted
+  /boards/{boardId}/members:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    post:
+      operationId: addBoardMember
+      tags: [boards]
+      summary: Add a registered user to a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BoardMemberInput"
+      responses:
+        "201":
+          description: Added board member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardMember"
+        "404":
+          description: User or board not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{boardId}/tasks:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List and filter tasks on a board
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/TaskStatus"
+        - in: query
+          name: assigneeId
+          schema:
+            type: integer
+        - in: query
+          name: priority
+          schema:
+            $ref: "#/components/schemas/TaskPriority"
+        - in: query
+          name: sprintId
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Filtered board tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task on a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}:
+    parameters:
+      - $ref: "#/components/parameters/TaskId"
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task and its metadata
+      responses:
+        "200":
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update task details or move it between columns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      responses:
+        "204":
+          description: Task deleted
+  /tasks/{taskId}/comments:
+    parameters:
+      - $ref: "#/components/parameters/TaskId"
+    get:
+      operationId: listTaskComments
+      tags: [tasks]
+      summary: List task comments
+      responses:
+        "200":
+          description: Task comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: createTaskComment
+      tags: [tasks]
+      summary: Add a comment to a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Added comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+  /boards/{boardId}/sprints:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    get:
+      operationId: listSprints
+      tags: [sprints]
+      summary: List sprints for a board
+      responses:
+        "200":
+          description: Board sprints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sprint"
+    post:
+      operationId: createSprint
+      tags: [sprints]
+      summary: Create a sprint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SprintInput"
+      responses:
+        "201":
+          description: Created sprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sprint"
+  /sprints/{sprintId}:
+    parameters:
+      - $ref: "#/components/parameters/SprintId"
+    patch:
+      operationId: updateSprint
+      tags: [sprints]
+      summary: Update sprint dates, status, or name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SprintUpdate"
+      responses:
+        "200":
+          description: Updated sprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sprint"
+  /boards/{boardId}/analytics:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    get:
+      operationId: getBoardAnalytics
+      tags: [analytics]
+      summary: Get sprint and task analytics for a board
+      responses:
+        "200":
+          description: Board analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardAnalytics"
+  /boards/{boardId}/activity:
+    parameters:
+      - $ref: "#/components/parameters/BoardId"
+    get:
+      operationId: listBoardActivity
+      tags: [analytics]
+      summary: Get recent board activity
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: Recent board activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
 components:
+  parameters:
+    BoardId:
+      in: path
+      name: boardId
+      required: true
+      schema:
+        type: integer
+    TaskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+        type: integer
+    SprintId:
+      in: path
+      name: sprintId
+      required: true
+      schema:
+        type: integer
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +459,216 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        avatar: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, email, createdAt]
+    AuthSession:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+      required: [user]
+    RegisterInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 128 }
+      required: [name, email, password]
+    LoginInput:
+      type: object
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+      required: [email, password]
+    Board:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        ownerId: { type: integer }
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardMember"
+        taskCount: { type: integer }
+        completedCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, title, ownerId, members, taskCount, completedCount, createdAt, updatedAt]
+    BoardInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+      required: [title]
+    BoardUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+    BoardMember:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        avatar: { type: ["string", "null"] }
+        role: { type: string, enum: [owner, member] }
+      required: [id, name, email, role]
+    BoardMemberInput:
+      type: object
+      properties:
+        email: { type: string, format: email }
+      required: [email]
+    TaskStatus:
+      type: string
+      enum: [Backlog, Todo, In Progress, Review, Done]
+    TaskPriority:
+      type: string
+      enum: [Low, Medium, High, Urgent]
+    Task:
+      type: object
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        priority:
+          $ref: "#/components/schemas/TaskPriority"
+        assigneeId: { type: ["integer", "null"] }
+        assigneeName: { type: ["string", "null"] }
+        dueDate: { type: ["string", "null"], format: date-time }
+        sprintId: { type: ["integer", "null"] }
+        position: { type: integer }
+        commentCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, boardId, title, status, priority, position, commentCount, createdAt, updatedAt]
+    TaskInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string, maxLength: 5000 }
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        priority:
+          $ref: "#/components/schemas/TaskPriority"
+        assigneeId: { type: ["integer", "null"] }
+        dueDate: { type: ["string", "null"], format: date-time }
+        sprintId: { type: ["integer", "null"] }
+      required: [title]
+    TaskUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: ["string", "null"], maxLength: 5000 }
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        priority:
+          $ref: "#/components/schemas/TaskPriority"
+        assigneeId: { type: ["integer", "null"] }
+        dueDate: { type: ["string", "null"], format: date-time }
+        sprintId: { type: ["integer", "null"] }
+        position: { type: integer, minimum: 0 }
+    Comment:
+      type: object
+      properties:
+        id: { type: integer }
+        taskId: { type: integer }
+        authorId: { type: integer }
+        authorName: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, taskId, authorId, authorName, body, createdAt]
+    CommentInput:
+      type: object
+      properties:
+        body: { type: string, minLength: 1, maxLength: 3000 }
+      required: [body]
+    Sprint:
+      type: object
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        name: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { type: string, enum: [Planned, Active, Completed] }
+        goal: { type: ["string", "null"] }
+        taskCount: { type: integer }
+        completedCount: { type: integer }
+      required: [id, boardId, name, startDate, endDate, status, taskCount, completedCount]
+    SprintInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        goal: { type: string, maxLength: 1000 }
+      required: [name, startDate, endDate]
+    SprintUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { type: string, enum: [Planned, Active, Completed] }
+        goal: { type: ["string", "null"], maxLength: 1000 }
+    BoardAnalytics:
+      type: object
+      properties:
+        totalTasks: { type: integer }
+        completedTasks: { type: integer }
+        activeTasks: { type: integer }
+        overdueTasks: { type: integer }
+        completionRate: { type: number }
+        weeklyCompleted:
+          type: array
+          items:
+            $ref: "#/components/schemas/VelocityPoint"
+        priorityCounts:
+          type: object
+          properties:
+            Low: { type: integer }
+            Medium: { type: integer }
+            High: { type: integer }
+            Urgent: { type: integer }
+          required: [Low, Medium, High, Urgent]
+      required: [totalTasks, completedTasks, activeTasks, overdueTasks, completionRate, weeklyCompleted, priorityCounts]
+    VelocityPoint:
+      type: object
+      properties:
+        week: { type: string }
+        completed: { type: integer }
+      required: [week, completed]
+    Activity:
+      type: object
+      properties:
+        id: { type: integer }
+        boardId: { type: integer }
+        taskId: { type: ["integer", "null"] }
+        actorName: { type: string }
+        action: { type: string }
+        target: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, boardId, actorName, action, target, createdAt]
 
