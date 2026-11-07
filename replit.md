@@ -1,15 +1,16 @@
-# [Project name]
+# SyncFlow Kanban
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A real-time collaborative workspace for teams to plan tasks, manage sprints, and track delivery across shared Kanban boards.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (managed workflow)
+- `pnpm --filter @workspace/syncflow-kanban run dev` — run the web app (managed workflow)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL`, `SESSION_SECRET`
 
 ## Stack
 
@@ -18,27 +19,35 @@ _Replace the heading above with the project's name, and this line with one sente
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Build: esbuild (ESM bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/syncflow-kanban/` — React/Vite web app and shared UI.
+- `artifacts/api-server/` — Express REST API and Socket.IO server.
+- `lib/api-spec/openapi.yaml` — source of truth for API request and response contracts.
+- `lib/api-client-react/` and `lib/api-zod/` — generated client hooks and runtime validators.
+- `lib/db/src/schema/` — PostgreSQL tables and Drizzle schema.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- PostgreSQL with Drizzle is the chosen store for this app; the user selected the workspace database instead of a separate MongoDB service.
+- Sessions are signed JWTs in an HttpOnly, SameSite=Lax cookie; passwords use bcrypt hashing.
+- Socket.IO runs on `/api/socket.io` and only joins board rooms after checking membership.
+- Every new account receives a starter board and sample sprint tasks so the first board view is useful.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Users can register and sign in, create and share boards, manage tasks and comments, move work between five workflow columns, filter by assignee/priority/sprint, plan sprints, and view board activity and delivery analytics. Board changes refresh live for connected members.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Use the included PostgreSQL database rather than an external MongoDB connection.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After OpenAPI codegen, keep `lib/api-zod/src/index.ts` exporting `generated/api` only. Wildcard-exporting `generated/types` collides with generated Zod parameter schemas (`ListTasksParams` and `ListBoardActivityParams`).
+- If the API schema changes, run codegen, then `pnpm run typecheck:libs` before checking app packages.
 
 ## Pointers
 

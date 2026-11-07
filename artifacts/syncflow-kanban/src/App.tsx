@@ -21,7 +21,7 @@ import {
 } from '@workspace/api-client-react';
 import type { Activity, Board, BoardAnalytics, BoardMember, Sprint, Task, TaskPriority, TaskStatus, User } from '@workspace/api-client-react';
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } } });
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: (failureCount, error) => (error as { status?: number }).status !== 401 && failureCount < 2, refetchOnWindowFocus: true } } });
 const statuses: TaskStatus[] = ['Backlog', 'Todo', 'In Progress', 'Review', 'Done'];
 const priorities: TaskPriority[] = ['Low', 'Medium', 'High', 'Urgent'];
 
@@ -96,8 +96,8 @@ function LoginPage() {
   const [, setLocation] = useLocation(); const login = useLogin();
   const submit = (e: FormEvent) => { e.preventDefault(); setError(''); login.mutate({ data: { email, password } }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() }); setLocation('/dashboard'); }, onError: (err) => setError(errorMessage(err)) }); };
   return <AuthFrame mode="login"><form onSubmit={submit} className="space-y-5">
-    <div><label className="label" htmlFor="email">Work email</label><input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="field" placeholder="you@company.com" required data-testid="input-email" /></div>
-    <div><div className="flex justify-between"><label className="label" htmlFor="password">Password</label><span className="text-[11px] text-[#8b8b81]">At least 8 characters</span></div><input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="field" required data-testid="input-password" /></div>
+    <div><label className="label" htmlFor="email">Work email</label><input id="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="field" placeholder="you@company.com" required data-testid="input-email" /></div>
+    <div><div className="flex justify-between"><label className="label" htmlFor="password">Password</label><span className="text-[11px] text-[#8b8b81]">At least 8 characters</span></div><input id="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="field" required data-testid="input-password" /></div>
     {error && <div role="alert" className="rounded-lg bg-[#f8e7e3] p-3 text-xs text-[#983e35]" data-testid="status-auth-error">{error}</div>}
     <button className="button w-full !py-3" disabled={login.isPending} data-testid="button-submit-login">{login.isPending ? 'Signing in…' : 'Sign in'}<ArrowRight size={15} /></button>
   </form><div className="mt-6 text-center text-xs text-[#797e81]">New to SyncFlow? <Link href="/register" className="font-semibold text-[#28735f]" data-testid="link-register">Create an account</Link></div></AuthFrame>;
@@ -108,9 +108,9 @@ function RegisterPage() {
   const [, setLocation] = useLocation(); const register = useRegister();
   const submit = (e: FormEvent) => { e.preventDefault(); setError(''); register.mutate({ data: { name, email, password } }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() }); setLocation('/dashboard'); }, onError: err => setError(errorMessage(err)) }); };
   return <AuthFrame mode="register"><form onSubmit={submit} className="space-y-4">
-    <div><label className="label">Your name</label><input className="field" value={name} onChange={e => setName(e.target.value)} placeholder="Morgan Lee" required maxLength={80} data-testid="input-name" /></div>
-    <div><label className="label">Work email</label><input className="field" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required data-testid="input-email" /></div>
-    <div><label className="label">Password</label><input className="field" type="password" minLength={8} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} required data-testid="input-password" /></div>
+    <div><label className="label">Your name</label><input className="field" autoComplete="name" value={name} onChange={e => setName(e.target.value)} placeholder="Morgan Lee" required maxLength={80} data-testid="input-name" /></div>
+    <div><label className="label">Work email</label><input className="field" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required data-testid="input-email" /></div>
+    <div><label className="label">Password</label><input className="field" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} required data-testid="input-password" /></div>
     {error && <div role="alert" className="rounded-lg bg-[#f8e7e3] p-3 text-xs text-[#983e35]" data-testid="status-auth-error">{error}</div>}
     <button className="button w-full !py-3" disabled={register.isPending} data-testid="button-submit-register">{register.isPending ? 'Creating workspace…' : 'Create account'}<ArrowRight size={15} /></button>
   </form><div className="mt-6 text-center text-xs text-[#797e81]">Already have an account? <Link href="/login" className="font-semibold text-[#28735f]" data-testid="link-login">Sign in</Link></div></AuthFrame>;
@@ -159,7 +159,7 @@ function DashboardPage() {
   const visible = (boards || []).filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
   const submit = (e: FormEvent) => { e.preventDefault(); if (!title.trim()) return; createBoard.mutate({ data: { title: title.trim() } }, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListBoardsQueryKey() }); setTitle(''); setShowCreate(false); } }); };
   return <AppShell user={auth.user}>
-    <div className="topline"><div><div className="eyebrow">Your workspace / Monday, May 20</div><h1 className="page-title">Good to have you back<span className="text-[#34806d]">.</span></h1></div><button className="button" onClick={() => setShowCreate(true)} data-testid="button-create-board"><Plus size={16} />New board</button></div>
+    <div className="topline"><div><div className="eyebrow">Your workspace / {new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}</div><h1 className="page-title">Good to have you back<span className="text-[#34806d]">.</span></h1></div><button className="button" onClick={() => setShowCreate(true)} data-testid="button-create-board"><Plus size={16} />New board</button></div>
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
       <DashboardMetric label="Boards you’re on" value={boards?.length || 0} icon={<FolderKanban size={16} />} note="Shared workspaces" />
       <DashboardMetric label="Tasks in motion" value={(boards || []).reduce((n, b) => n + Math.max(0, b.taskCount - b.completedCount), 0)} icon={<Zap size={16} />} note="Across your boards" />
@@ -213,13 +213,19 @@ function BoardPage() {
   const [filters, setFilters] = useState({ search: '', priority: '', assignee: '', sprint: '' });
   const [taskModal, setTaskModal] = useState<{ open: boolean; task?: Task }>({ open: false });
   const [boardMenu, setBoardMenu] = useState(false); const [memberModal, setMemberModal] = useState(false); const [sprintModal, setSprintModal] = useState(false);
-  const [fresh, setFresh] = useState(true);
+  const [fresh, setFresh] = useState(false);
   useEffect(() => {
     if (!Number.isFinite(boardId)) return;
-    const socket = io({ withCredentials: true, autoConnect: true });
+    const socket = io({ path: '/api/socket.io', withCredentials: true, autoConnect: true });
     const refresh = () => { client.invalidateQueries({ queryKey: getGetBoardQueryKey(boardId) }); client.invalidateQueries({ queryKey: getListTasksQueryKey(boardId) }); client.invalidateQueries({ queryKey: getListSprintsQueryKey(boardId) }); client.invalidateQueries({ queryKey: getListBoardActivityQueryKey(boardId, { limit: 20 }) }); setFresh(true); };
-    socket.on('connect', refresh); socket.on('disconnect', () => setFresh(false)); socket.onAny((_event) => refresh());
-    return () => { socket.off('connect', refresh); socket.offAny(); socket.disconnect(); };
+    const joinBoard = () => socket.emit('board:join', { boardId });
+    const disconnect = () => setFresh(false);
+    socket.on('connect', joinBoard);
+    socket.on('board:joined', refresh);
+    socket.on('board:update', refresh);
+    socket.on('disconnect', disconnect);
+    socket.on('connect_error', disconnect);
+    return () => { socket.emit('board:leave', { boardId }); socket.off('connect', joinBoard); socket.off('board:joined', refresh); socket.off('board:update', refresh); socket.off('disconnect', disconnect); socket.off('connect_error', disconnect); socket.disconnect(); };
   }, [boardId, client]);
   const visibleTasks = useMemo(() => (tasks || []).filter(task => {
     const matchedSearch = task.title.toLowerCase().includes(filters.search.toLowerCase()) || (task.description || '').toLowerCase().includes(filters.search.toLowerCase());

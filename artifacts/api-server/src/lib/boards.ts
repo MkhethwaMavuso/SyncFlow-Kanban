@@ -3,6 +3,7 @@ import type { Request } from "express";
 import type { Server } from "socket.io";
 import { db } from "@workspace/db";
 import {
+  activityTable,
   boardMembersTable,
   boardsTable,
   commentsTable,
@@ -110,7 +111,6 @@ export async function recordActivity(
   target: string,
   taskId: number | null = null,
 ): Promise<void> {
-  const { activityTable } = await import("@workspace/db");
   await db.insert(activityTable).values({
     boardId,
     actorId,
