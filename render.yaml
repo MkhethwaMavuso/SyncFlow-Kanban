@@ -14,6 +14,6 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CLIENT_URL
-        sync: false
+        value: https://task-flow-kanban-board.netlify.app
       - key: CORS_ORIGINS
-        sync: false
+        value: https://task-flow-kanban-board.netlify.app
