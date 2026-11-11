@@ -3,7 +3,7 @@ import { InferSchemaType, Model, model, models, Schema } from "mongoose";
 const sprintSchema = new Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 100 },
-    boardId: { type: Schema.Types.ObjectId, ref: "Board", required: true, index: true },
+    boardId: { type: Schema.Types.ObjectId, ref: "Board", required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     status: {
