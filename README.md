@@ -95,23 +95,6 @@ Bash
 npm run dev
 Open http://localhost:3000 (or your configured Vite client port) to access the TaskFlow Collaborative Kanban Platform.
 
-Implement exactly the screenshot and nothing else
-This project was built with Lovable.
-
-Live app: https://realtime-kanban-sprint-tracker.lovable.app
-
-Build with Lovable
-Continue developing this project in the Lovable editor.
-
-Ship faster: describe what you want to build and Lovable handles the code.
-
-Stay in sync: every change made in Lovable is committed straight to this repository.
-
-Full ownership: this code is yours. Push to main on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-Development
-Prefer working locally? You need Node.js and npm — install with nvm.
-
 Bash
 git clone <this-repository-url>
 cd <repository-name>
